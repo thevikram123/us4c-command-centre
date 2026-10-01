@@ -6,6 +6,8 @@ Professional cyber operations portal repurposed from the original surveillance a
 - [Assistant health](https://us4c-command-assistant.thevikram123.workers.dev/health)
 - Supabase project: `ryddbjuaqehelgycodxs`, Mumbai.
 
+Demo sign-in is prefilled with username `us4c.operator` and password `gildemo`. It opens the public training workspace with browser-local changes. Private operator sign-in continues to use Supabase account credentials.
+
 ## Operator workflows
 
 The original `WatchlistFlow.tsx` provided intake, fusion query, entity resolution, de-duplication, canonical locking, watchlist publication, search, verification, correlation, analytics, GIS, command and resolution controls. The repurposed workflow preserves those operator decisions and substitutes financial and digital evidence for surveillance frames.

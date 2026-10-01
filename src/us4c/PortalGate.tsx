@@ -27,7 +27,7 @@ export default function PortalGate({
   const [checks, setChecks] = useState<{ name: string; status: string }[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"demo" | "signin" | "signup">("demo");
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -153,7 +153,26 @@ export default function PortalGate({
               <div className="portal-access-divider">
                 <span>or use your account</span>
               </div>
-              <button className="button full" onClick={() => setPhase("login")}>
+              <button
+                className="button primary full"
+                onClick={() => {
+                  setMode("demo");
+                  setPhase("login");
+                  setError("");
+                }}
+              >
+                <User size={16} />
+                Demo sign in
+                <ArrowRight size={15} />
+              </button>
+              <button
+                className="button full"
+                onClick={() => {
+                  setMode("signin");
+                  setPhase("login");
+                  setError("");
+                }}
+              >
                 <KeyRound size={16} />
                 Operator sign in
               </button>
@@ -200,11 +219,26 @@ export default function PortalGate({
                 <>
                   <button
                     className="button primary full"
-                    onClick={() => setPhase("login")}
+                    onClick={() => {
+                      setMode("demo");
+                      setPhase("login");
+                      setError("");
+                    }}
+                  >
+                    <KeyRound size={16} />
+                    Demo sign in
+                    <ArrowRight size={15} />
+                  </button>
+                  <button
+                    className="button full"
+                    onClick={() => {
+                      setMode("signin");
+                      setPhase("login");
+                      setError("");
+                    }}
                   >
                     <KeyRound size={16} />
                     Operator sign in
-                    <ArrowRight size={15} />
                   </button>
                   <button className="training-enter" onClick={onEnter}>
                     Enter training workspace
@@ -221,14 +255,35 @@ export default function PortalGate({
                 <LockKeyhole size={16} />
               </div>
               <h2>
-                {mode === "signin"
-                  ? "Operator sign in"
-                  : "Create operator account"}
+                {mode === "demo"
+                  ? "Demo sign in"
+                  : mode === "signin"
+                    ? "Operator sign in"
+                    : "Create operator account"}
               </h2>
-              <p>Authenticate to access your private US4C case workspace.</p>
+              <p>
+                {mode === "demo"
+                  ? "Enter the populated US4C training workspace."
+                  : "Authenticate to access your private US4C case workspace."}
+              </p>
               <form
+                key={mode}
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  setError("");
+                  const form = new FormData(e.currentTarget);
+                  if (mode === "demo") {
+                    if (
+                      String(form.get("username")).trim() === "us4c.operator" &&
+                      String(form.get("password")) === "gildemo"
+                    )
+                      onEnter();
+                    else
+                      setError(
+                        "Enter the demo username us4c.operator and password gildemo.",
+                      );
+                    return;
+                  }
                   if (!database) {
                     setError(
                       "The case database is not configured. Use the training workspace.",
@@ -237,7 +292,6 @@ export default function PortalGate({
                   }
                   setBusy(true);
                   setError("");
-                  const form = new FormData(e.currentTarget);
                   const credentials = {
                     email: String(form.get("email")).trim(),
                     password: String(form.get("password")),
@@ -261,15 +315,20 @@ export default function PortalGate({
                 }}
               >
                 <label>
-                  Operator email
+                  {mode === "demo" ? "Username" : "Operator email"}
                   <div className="portal-input">
                     <User size={16} />
                     <input
-                      name="email"
-                      type="email"
+                      name={mode === "demo" ? "username" : "email"}
+                      type={mode === "demo" ? "text" : "email"}
+                      defaultValue={mode === "demo" ? "us4c.operator" : ""}
                       required
-                      autoComplete="email"
-                      placeholder="operator@organisation.gov.in…"
+                      autoComplete={mode === "demo" ? "username" : "email"}
+                      placeholder={
+                        mode === "demo"
+                          ? "us4c.operator"
+                          : "operator@organisation.gov.in…"
+                      }
                     />
                   </div>
                 </label>
@@ -280,10 +339,11 @@ export default function PortalGate({
                     <input
                       name="password"
                       type="password"
-                      minLength={8}
+                      minLength={mode === "signup" ? 8 : undefined}
+                      defaultValue={mode === "demo" ? "gildemo" : ""}
                       required
                       autoComplete={
-                        mode === "signin" ? "current-password" : "new-password"
+                        mode === "signup" ? "new-password" : "current-password"
                       }
                       placeholder="Enter your password…"
                     />
@@ -297,12 +357,20 @@ export default function PortalGate({
                   )}{" "}
                   {busy
                     ? "Signing in…"
-                    : mode === "signin"
-                      ? "Sign in to US4C"
-                      : "Create account"}
+                    : mode === "demo"
+                      ? "Sign in to demo"
+                      : mode === "signin"
+                        ? "Sign in to US4C"
+                        : "Create account"}
                   <ArrowRight size={15} />
                 </button>
               </form>
+              {mode === "demo" ? (
+                <small className="portal-demo-credentials">
+                  Demo access: us4c.operator · gildemo. Changes stay in this
+                  browser.
+                </small>
+              ) : null}
               {error ? (
                 <p role="status" className="portal-error">
                   {error}
@@ -311,15 +379,35 @@ export default function PortalGate({
               <button
                 className="text-link"
                 onClick={() => {
-                  setMode(mode === "signin" ? "signup" : "signin");
+                  setMode(
+                    mode === "demo"
+                      ? "signin"
+                      : mode === "signin"
+                        ? "signup"
+                        : "signin",
+                  );
                   setError("");
                 }}
               >
-                {mode === "signin"
-                  ? "Create an operator account"
-                  : "Return to sign in"}
+                {mode === "demo"
+                  ? "Use a private operator account"
+                  : mode === "signin"
+                    ? "Create an operator account"
+                    : "Return to sign in"}
                 <ArrowRight size={14} />
               </button>
+              {mode !== "demo" ? (
+                <button
+                  className="text-link"
+                  onClick={() => {
+                    setMode("demo");
+                    setError("");
+                  }}
+                >
+                  Use demo credentials
+                  <ArrowRight size={14} />
+                </button>
+              ) : null}
               <div className="portal-access-divider">
                 <span>training access</span>
               </div>

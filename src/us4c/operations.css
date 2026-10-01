@@ -3961,3 +3961,9 @@
     font-size: 22px;
   }
 }
+.portal-demo-credentials {
+  display: block;
+  margin-top: 1rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
