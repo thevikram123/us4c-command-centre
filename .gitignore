@@ -1,0 +1,46 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+.env
+.env.*
+!.env.example
+.dev.vars*
+.cloudflare-correct-profile/
+.wrangler/
+.npm-cache/
+artifacts/
+# Unrouted original surveillance modules remain locally; the new repository contains US4C only.
+/src/assets/
+/src/components/
+/src/hooks/
+/src/integrations/
+/src/lib/
+/src/pages/
+/src/App.css
+/supabase/
+/public/favicon.ico
+/public/placeholder.svg
+/bun.lockb
+/components.json

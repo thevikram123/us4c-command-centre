@@ -1,0 +1,40 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "us4c-command-assistant",
+  "main": "worker/index.ts",
+  "account_id": "85988b5545b4331d02625c8e2a9f3d52",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "observability": { "enabled": true, "head_sampling_rate": 0.1 },
+  "vars": {
+    "ALLOWED_ORIGINS": "https://thevikram123.github.io,http://localhost:8080,http://127.0.0.1:8080",
+    "GROQ_MODEL": "openai/gpt-oss-20b",
+    "SUPABASE_URL": "https://ryddbjuaqehelgycodxs.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_VKO6bbjvmHKaDYAZnlQJ6g_RR30pYbs",
+  },
+  "secrets_store_secrets": [
+    {
+      "binding": "GROQ_API_KEY",
+      "store_id": "e0660ebafc5e4cc99716ab5d12e72d6f",
+      "secret_name": "GROQ_API_KEY",
+    },
+  ],
+  "ratelimits": [
+    {
+      "name": "CHAT_LIMIT",
+      "namespace_id": "104020261",
+      "simple": { "limit": 10, "period": 60 },
+    },
+    {
+      "name": "ABUSE_LIMIT",
+      "namespace_id": "104020262",
+      "simple": { "limit": 30, "period": 60 },
+    },
+    {
+      "name": "BUDGET_LIMIT",
+      "namespace_id": "104020263",
+      "simple": { "limit": 40, "period": 60 },
+    },
+  ],
+}
