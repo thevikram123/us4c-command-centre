@@ -94,19 +94,17 @@ describe("US4C chatbot trust boundary", () => {
     expect(env.GROQ_API_KEY.get).not.toHaveBeenCalled();
   });
   it("uses server-controlled sample context and never returns the provider secret", async () => {
-    const network = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            choices: [
-              {
-                message: { content: "Review the original transaction record." },
-              },
-            ],
-          }),
-        ),
-      );
+    const network = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: { content: "Review the original transaction record." },
+            },
+          ],
+        }),
+      ),
+    );
     vi.stubGlobal("fetch", network);
     const env = environment();
     const r = await worker.fetch(
@@ -121,7 +119,8 @@ describe("US4C chatbot trust boundary", () => {
     expect(text).not.toContain("test-provider-secret");
     expect(text).toContain("requiresHumanReview");
     const upstream = JSON.parse(network.mock.calls[0][1].body);
-    expect(upstream.messages[1].content).toContain("Synthetic");
+    expect(upstream.messages[1].content).toContain('"isDemo":true');
+    expect(upstream.messages[1].content).toContain("ACK/FI/1042/02");
     expect(upstream.max_completion_tokens).toBe(1000);
   });
   it("sanitizes provider failures", async () => {

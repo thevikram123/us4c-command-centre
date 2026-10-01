@@ -1,6 +1,4 @@
-import { useEffect, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { lazy, Suspense, useEffect, useState } from "react";
 import {
   HashRouter,
   NavLink,
@@ -60,7 +58,18 @@ import {
   saveRemote,
 } from "./store";
 import "./cyber.css";
-import FusionWorkflow from "./FusionWorkflow";
+import "./operations.css";
+import {
+  flowSteps,
+  initialInvestigation,
+  canonicalProfile,
+} from "./investigation";
+const FusionWorkflow = lazy(() => import("./FusionWorkflow"));
+const OperationsReports = lazy(() => import("./OperationsReports"));
+const CommandDashboard = lazy(() => import("./CommandDashboard"));
+const PortalGate = lazy(() => import("./PortalGate"));
+const Chat = lazy(() => import("./CommandAssistant"));
+const IntelligenceIntake = lazy(() => import("./IntelligenceIntake"));
 
 const icons = {
   fraud: Wallet,
@@ -161,7 +170,11 @@ function Queue({ cases, filter = "all" }: { cases: Case[]; filter?: string }) {
                 </div>
                 <div className="case-status">
                   <Tag tone={c.priority}>{c.priority}</Tag>
-                  <span>{stages[c.stage]}</span>
+                  <span>
+                    {c.stage === 5
+                      ? "Resolved"
+                      : flowSteps[c.mission][c.investigation?.step || 0]}
+                  </span>
                 </div>
                 <ChevronRight size={17} />
               </NavLink>
@@ -179,141 +192,12 @@ function Queue({ cases, filter = "all" }: { cases: Case[]; filter?: string }) {
   );
 }
 function Dashboard({ cases, openChat }: Workspace) {
-  const active = cases.filter((c) => c.stage < 5);
-  const critical = active.filter((c) => c.priority === "Critical").length;
   return (
-    <>
-      <div className="page-intro">
-        <div>
-          <span className="eyebrow">UNIFIED STATE CYBER COMMAND CENTRE</span>
-          <h1>Command Centre</h1>
-          <p>
-            Review active incidents, mission priorities and pending operator
-            actions.
-          </p>
-        </div>
-        <NavLink to="/intake" className="button primary">
-          <Plus size={16} /> Register incident
-        </NavLink>
-      </div>
-      <div className="metrics">
-        <div>
-          <span>ACTIVE CASES</span>
-          <strong>{active.length.toString().padStart(2, "0")}</strong>
-          <p>
-            <i className="dot cyan-dot" />
-            Across all mission desks
-          </p>
-        </div>
-        <div>
-          <span>CRITICAL PRIORITY</span>
-          <strong className="coral-text">
-            {critical.toString().padStart(2, "0")}
-          </strong>
-          <p>Human review comes first</p>
-        </div>
-        <div>
-          <span>FUNDS FROZEN</span>
-          <strong>{money(cases.reduce((s, c) => s + c.frozen, 0))}</strong>
-          <p>From recorded acknowledgements</p>
-        </div>
-        <div>
-          <span>CASES RESOLVED</span>
-          <strong>
-            {cases
-              .filter((c) => c.stage === 5)
-              .length.toString()
-              .padStart(2, "0")}
-          </strong>
-          <p>Outcome and follow-up recorded</p>
-        </div>
-      </div>
-      <div className="section-label">
-        <h2>Mission workspaces</h2>
-        <span>FOUR OPERATIONAL MISSIONS</span>
-      </div>
-      <div className="mission-grid">
-        {missions.map((m, i) => {
-          const Icon = icons[m.id];
-          const items = active.filter((c) => c.mission === m.id);
-          return (
-            <NavLink
-              className={`mission-card ${m.id}`}
-              key={m.id}
-              to={`/mission/${m.id}`}
-            >
-              <div className="mission-top">
-                <Icon size={24} />
-                <span className="mono">0{i + 1} / MISSION</span>
-                <ArrowUpRight size={19} />
-              </div>
-              <h3>{m.title}</h3>
-              <p>{m.description}</p>
-              <div className="mission-bottom">
-                <span>
-                  <strong>{items.length}</strong> active case
-                  {items.length !== 1 ? "s" : ""}
-                </span>
-                <span>
-                  {items.filter((c) => c.priority === "Critical").length}{" "}
-                  critical <i className="dot" />
-                </span>
-              </div>
-            </NavLink>
-          );
-        })}
-      </div>
-      <div className="overview-grid">
-        <Panel
-          title="Priority queue"
-          eyebrow="OPERATOR ATTENTION"
-          action={
-            <NavLink className="text-link" to="/cases">
-              All cases <ArrowRight size={14} />
-            </NavLink>
-          }
-        >
-          <Queue
-            cases={[...active].sort(
-              (a, b) =>
-                Number(b.priority === "Critical") -
-                Number(a.priority === "Critical"),
-            )}
-          />
-        </Panel>
-        <Panel title="Command brief" eyebrow="HUMAN + MACHINE">
-          <div className="brief-symbol">
-            <MessageSquare size={31} />
-            <div className="orbit-ring" />
-          </div>
-          <h3 className="brief-title">Operator review</h3>
-          <p className="brief-copy">
-            Review source evidence, confirm AI findings, and record the next
-            action with the responsible unit.
-          </p>
-          <div className="brief-check">
-            <ShieldCheck size={17} />
-            <span>AI insights stay separate from verified findings.</span>
-          </div>
-          <button className="button full" onClick={openChat}>
-            <MessageSquare size={16} /> Open command assistant{" "}
-            <ArrowRight size={15} />
-          </button>
-        </Panel>
-      </div>
-      <div className="fusion-strip">
-        <Layers3 size={22} />
-        <div>
-          <strong>Shared intelligence</strong>
-          <span>
-            Complaints · Financial records · Open sources · Internal systems
-          </span>
-        </div>
-        <NavLink to="/fusion" className="text-link">
-          Explore data fusion <ArrowRight size={16} />
-        </NavLink>
-      </div>
-    </>
+    <Suspense
+      fallback={<div className="ops-empty">Loading command centre…</div>}
+    >
+      <CommandDashboard cases={cases} openChat={openChat} />
+    </Suspense>
   );
 }
 function MissionPage(props: Workspace) {
@@ -338,8 +222,8 @@ function MissionPage(props: Workspace) {
           <Plus size={16} /> New complaint
         </NavLink>
       </div>
-      <div className="journey">
-        {stages.map((s, i) => (
+      <div className="desk-flow">
+        {flowSteps[m.id].map((s, i) => (
           <div key={s}>
             <span>{String(i + 1).padStart(2, "0")}</span>
             <strong>{s}</strong>
@@ -404,7 +288,9 @@ const playbooks: Record<Mission, string[]> = {
 function CasePage({ cases, save, saving, openChat }: Workspace) {
   const { id } = useParams();
   const item = cases.find((c) => c.id === id);
-  const [tab, setTab] = useState("Overview");
+  const [tab, setTab] = useState(
+    item?.stage === 5 ? "Overview" : "Investigation",
+  );
   const [review, setReview] = useState(false);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
@@ -413,14 +299,40 @@ function CasePage({ cases, save, saving, openChat }: Workspace) {
     setReview(false);
     setNote("");
     setOutcome("");
-    setTab("Overview");
-  }, [id]);
+    setTab(item?.stage === 5 ? "Overview" : "Investigation");
+  }, [id, item?.stage]);
   if (!item) return <NotFound />;
   const mission = missions.find((m) => m.id === item.mission)!;
   const mutate = async (next: Case) => {
     setError("");
     try {
-      await save(next);
+      const inv = next.investigation || initialInvestigation(next);
+      const newEvidence = next.evidence.length !== item.evidence.length;
+      const auditEvent = {
+        id: crypto.randomUUID(),
+        at: new Date().toISOString(),
+        actor: item.isDemo ? "Training operator" : "Signed-in operator",
+        action: newEvidence
+          ? "Evidence reference registered"
+          : "Case metadata updated",
+        detail: next.timeline.slice(-1)[0]?.text || next.id,
+        stage: "Case register",
+      };
+      await save({
+        ...next,
+        investigation: {
+          ...inv,
+          ...(newEvidence && inv.step > 6
+            ? {
+                step: 6,
+                completed: inv.completed.filter(
+                  (stage) => flowSteps[item.mission].indexOf(stage) < 6,
+                ),
+              }
+            : {}),
+          audit: [...inv.audit, auditEvent].slice(-120),
+        },
+      });
     } catch (e) {
       setError((e as Error).message);
     }
@@ -463,28 +375,8 @@ function CasePage({ cases, save, saving, openChat }: Workspace) {
         </div>
         <div className="stack">
           <Tag tone={item.priority}>{item.priority} priority</Tag>
-          <Tag>{item.isDemo ? "Synthetic example" : "Private case"}</Tag>
+          <Tag>{item.isDemo ? "Training case" : "Private case"}</Tag>
         </div>
-      </div>
-      <div className="journey">
-        {stages.map((s, i) => (
-          <div
-            className={
-              i === item.stage ? "current" : i < item.stage ? "complete" : ""
-            }
-            key={s}
-          >
-            <span>
-              {i < item.stage ? (
-                <Check size={14} />
-              ) : (
-                String(i + 1).padStart(2, "0")
-              )}
-            </span>
-            <strong>{s}</strong>
-            {i < 5 && <ChevronRight size={16} />}
-          </div>
-        ))}
       </div>
       <div className="case-ribbon">
         <div>
@@ -499,9 +391,7 @@ function CasePage({ cases, save, saving, openChat }: Workspace) {
         <div>
           <span>RESPONSE WINDOW</span>
           <strong>
-            {item.isDemo
-              ? "Sample timeline · not a live SLA"
-              : "SLA not configured"}
+            {item.isDemo ? "Priority review" : "Review assignment required"}
           </strong>
         </div>
         <div>
@@ -521,7 +411,7 @@ function CasePage({ cases, save, saving, openChat }: Workspace) {
       <div className="tabs" role="tablist">
         {[
           "Overview",
-          "DB fusion",
+          "Investigation",
           "Evidence",
           "Entity graph",
           "Coordination",
@@ -538,7 +428,11 @@ function CasePage({ cases, save, saving, openChat }: Workspace) {
           </button>
         ))}
       </div>
-      <div className="case-grid">
+      <div
+        className={
+          tab === "Investigation" ? "case-grid investigation-case" : "case-grid"
+        }
+      >
         <div>
           {tab === "Overview" && (
             <>
@@ -561,8 +455,8 @@ function CasePage({ cases, save, saving, openChat }: Workspace) {
               >
                 <div className="notice">
                   <MessageSquare size={18} />
-                  These are sample insights or recorded analyst notes. Live
-                  assistant output requires independent verification.
+                  Review the analyst findings against the referenced evidence
+                  before approving action.
                 </div>
                 {item.insights.map((ins, i) => (
                   <div className="insight" key={i}>
@@ -581,20 +475,29 @@ function CasePage({ cases, save, saving, openChat }: Workspace) {
               </Panel>
             </>
           )}
-          {tab === "DB fusion" && (
-            <FusionWorkflow
-              item={item}
-              cases={cases}
-              save={save}
-              saving={saving}
-              openChat={openChat}
-            />
+          {tab === "Investigation" && (
+            <Suspense
+              fallback={
+                <div className="ops-empty">
+                  Loading investigation workspace…
+                </div>
+              }
+            >
+              <FusionWorkflow
+                item={item}
+                cases={cases}
+                save={save}
+                saving={saving}
+                openChat={openChat}
+              />
+            </Suspense>
           )}
           {tab === "Evidence" && (
             <Panel title="Evidence register" eyebrow="SOURCE + PROVENANCE">
               <p className="body-copy">
-                Evidence metadata stays with the case. Sample attachments are
-                descriptions; original media has not been uploaded.
+                Evidence references, preservation status and source provenance
+                stay with the case. Register each original attachment through
+                the authorised evidence system.
               </p>
               {item.evidence.map((e, i) => (
                 <div className="evidence-row" key={i}>
@@ -675,9 +578,8 @@ function CasePage({ cases, save, saving, openChat }: Workspace) {
               eyebrow="SOURCE-AWARE CONNECTIONS"
             >
               <p className="body-copy">
-                Select a node to inspect its source and confidence. Connections
-                below illustrate this workflow; they are not verified identity
-                matches.
+                Relationships derive from retained source records. Select a
+                source to inspect its provenance and review basis.
               </p>
               <EntityGraph item={item} />
             </Panel>
@@ -698,46 +600,18 @@ function CasePage({ cases, save, saving, openChat }: Workspace) {
                     <h3>{a.agency}</h3>
                     <p>{a.task}</p>
                   </div>
-                  <label className="sr-only" htmlFor={`action-${i}`}>
-                    Status for {a.agency}
-                  </label>
-                  <select
-                    id={`action-${i}`}
-                    value={a.status}
-                    disabled={saving}
-                    onChange={(e) => {
-                      const status = e.target.value;
-                      void mutate({
-                        ...item,
-                        actions: item.actions.map((x, j) =>
-                          j === i ? { ...x, status } : x,
-                        ),
-                        timeline: [
-                          ...item.timeline,
-                          {
-                            time: nowIST(),
-                            text: `${a.agency}: operator recorded ${status}`,
-                          },
-                        ],
-                      });
-                    }}
-                  >
-                    {[
-                      ...new Set([
-                        a.status,
-                        "Pending",
-                        "Draft",
-                        "Request prepared",
-                        "Acknowledged",
-                        "Action recorded",
-                        "Completed",
-                      ]),
-                    ].map((s) => (
-                      <option key={s}>{s}</option>
-                    ))}
-                  </select>
+                  <Tag tone={a.status === "Completed" ? "success" : ""}>
+                    {a.status}
+                  </Tag>
                 </div>
               ))}
+              <button
+                className="button primary"
+                onClick={() => setTab("Investigation")}
+              >
+                Record acknowledgements in the investigation workflow{" "}
+                <ArrowRight size={15} />
+              </button>
             </Panel>
           )}
           {tab === "Timeline" && (
@@ -784,55 +658,21 @@ function CasePage({ cases, save, saving, openChat }: Workspace) {
           )}
         </div>
         <aside>
-          <Panel
-            title="Next operator action"
-            eyebrow={stages[item.stage].toUpperCase()}
-          >
-            <p className="body-copy">{playbooks[item.mission][item.stage]}</p>
-            {item.stage >= 2 && item.stage < 5 && (
-              <label className="review-check">
-                <input
-                  type="checkbox"
-                  checked={review}
-                  onChange={(e) => setReview(e.target.checked)}
-                />
-                I reviewed the evidence and applicable SOP for the next stage.
-              </label>
-            )}
-            {item.stage === 4 && (
-              <label>
-                Resolution and follow-up
-                <textarea
-                  value={outcome}
-                  onChange={(e) => setOutcome(e.target.value)}
-                  required
-                  maxLength={2000}
-                  placeholder="Record outcome, handover and follow-up"
-                />
-              </label>
-            )}
-            {item.stage < 5 ? (
-              <button
-                className="button primary full"
-                disabled={
-                  saving ||
-                  (item.stage >= 2 && !review) ||
-                  (item.stage === 4 && !outcome.trim())
-                }
-                onClick={() => void advance()}
-              >
-                {saving ? (
-                  <Loader2 className="spin" size={16} />
-                ) : (
-                  <ShieldCheck size={16} />
-                )}{" "}
-                Move to {stages[item.stage + 1]}
-              </button>
-            ) : (
-              <Tag tone="success">Resolved · outcome recorded</Tag>
-            )}
+          <Panel title="Investigation controls" eyebrow="OPERATOR WORKSPACE">
+            <p className="body-copy">
+              {item.stage === 5
+                ? "Resolution and follow-up have been recorded. Review the case history and handover."
+                : "Complete the source, identity, evidence and response review in the investigation workspace. Decisions retain their references and audit history."}
+            </p>
+            <button
+              className="button primary full"
+              onClick={() => setTab("Investigation")}
+            >
+              <GitBranch size={16} />
+              Open investigation workflow
+            </button>
             {error && (
-              <p role="alert" className="error">
+              <p className="error" role="alert">
                 {error}
               </p>
             )}
@@ -866,67 +706,87 @@ function downloadCase(item: Case) {
   URL.revokeObjectURL(a.href);
 }
 function EntityGraph({ item }: { item: Case }) {
-  const [node, setNode] = useState(0);
-  const nodes =
-    item.mission === "fraud"
-      ? [
-          "Victim account",
-          "Mule account 1",
-          "Mule account 2",
-          "Wallet / merchant",
-        ]
-      : item.mission === "content"
-        ? [
-            "Source account",
-            "Early amplifiers",
-            "Related accounts",
-            "Share clusters",
-          ]
-        : item.mission === "distress"
-          ? [
-              "Reported signal",
-              "Location clue",
-              "Human review",
-              "Response resources",
-            ]
-          : [
-              "Reported account",
-              "Email / alias",
-              "Device / IP clues",
-              "Related profiles",
-            ];
+  const [selected, setSelected] = useState("");
+  const inv = item.investigation || initialInvestigation(item);
+  const profile = canonicalProfile(inv);
+  const record =
+    profile.records.find((r) => r.id === selected) || profile.records[0];
+  if (!profile.canonical)
+    return (
+      <>
+        <div className="ops-empty">
+          <GitBranch size={28} />
+          <h3>Identity resolution is pending</h3>
+          <p>
+            The relationship view appears after an operator accepts a source
+            cluster and selects a canonical record.
+          </p>
+        </div>
+        <div className="ops-field-grid">
+          {item.entities.map((e) => (
+            <div key={e.label}>
+              <span>{e.label}</span>
+              <strong>{e.value}</strong>
+              <small>{e.confidence}</small>
+            </div>
+          ))}
+        </div>
+      </>
+    );
   return (
     <>
-      <div className="entity-graph">
-        {nodes.map((n, i) => (
-          <div key={n}>
+      <div className="relationship-map">
+        <div className="relationship-centre">
+          <Users size={27} />
+          <strong>{profile.canonical.name}</strong>
+          <code>{profile.canonical.identifier}</code>
+          <span className="status-chip">
+            {inv.locked
+              ? "Canonical identity locked"
+              : "Canonical review pending"}
+          </span>
+        </div>
+        <div className="relationship-sources">
+          {profile.records.map((r) => (
             <button
-              className={node === i ? "active" : ""}
-              onClick={() => setNode(i)}
+              className={`graph-source-button ${record?.id === r.id ? "selected" : ""}`}
+              key={r.id}
+              onClick={() => setSelected(r.id)}
             >
-              <GitBranch size={23} />
-              <span>{n}</span>
-              <small>
-                {i === 0 ? "Reported source" : "Unverified relationship"}
-              </small>
+              <Database size={17} />
+              <strong>{r.source}</strong>
+              <small>{r.reference}</small>
+              <span>Exact identifier linkage</span>
             </button>
-            {i < 3 && <ArrowRight className="edge-arrow" size={25} />}
+          ))}
+        </div>
+      </div>
+      {record ? (
+        <div className="source-detail">
+          <h3>
+            {record.id} · {record.source}
+          </h3>
+          <p>{record.detail}</p>
+          <div className="ops-field-grid">
+            <div>
+              <span>Source reference</span>
+              <strong>{record.reference}</strong>
+            </div>
+            <div>
+              <span>Observed identifier</span>
+              <strong>{record.identifier}</strong>
+            </div>
+            <div>
+              <span>Observed time</span>
+              <strong>{record.observed.replace("T", " · ")} IST</strong>
+            </div>
+            <div>
+              <span>Review basis</span>
+              <strong>{inv.lockReason || "Canonical rationale pending"}</strong>
+            </div>
           </div>
-        ))}
-      </div>
-      <div className="node-details">
-        <Tag>Node {node + 1}</Tag>
-        <h3>{nodes[node]}</h3>
-        <p>
-          Source: {item.evidence[0]?.source || "Not recorded"} · Confidence:{" "}
-          {node === 0 ? "Reported" : "Illustrative / needs verification"}
-        </p>
-        <p>
-          {item.mission === "fraud"
-            ? "Verify account identifiers, transaction timestamps, transferred amounts and freeze acknowledgements against original bank records."
-            : "Verify this relationship using original evidence and record the basis before taking action."}
-        </p>
-      </div>
+        </div>
+      ) : null}
     </>
   );
 }
@@ -949,9 +809,7 @@ function Intake({ save, saving, user }: Workspace) {
             operational unit.
           </p>
         </div>
-        <Tag>
-          {user ? "Private Supabase record" : "Local demonstration record"}
-        </Tag>
+        <Tag>{user ? "Private Supabase record" : "Local training record"}</Tag>
       </div>
       <form
         className="intake-form panel"
@@ -1010,6 +868,49 @@ function Intake({ save, saving, user }: Workspace) {
             ],
             outcome: "Verification, response and follow-up pending.",
             isDemo: !user,
+          };
+          const fields: Record<Mission, string[]> = {
+            fraud: [
+              "payment_handle",
+              "beneficiary_account",
+              "transaction_time",
+            ],
+            safety: ["profile_urls", "threat_window", "safe_contact"],
+            content: ["content_url", "original_upload", "language"],
+            distress: ["last_contact", "landmark", "safe_contact"],
+          };
+          item.entities.push(
+            ...fields[mission]
+              .filter((key) => String(f.get(key) || "").trim())
+              .map((key) => ({
+                label: key.replace(/_/g, " "),
+                value: String(f.get(key)).trim(),
+                confidence: "Operator entered; source review pending",
+              })),
+          );
+          if (String(f.get("evidence_reference") || "").trim())
+            item.evidence.push({
+              name: String(
+                f.get("evidence_name") || "Intake evidence reference",
+              ),
+              type: String(f.get("evidence_type") || "Source record"),
+              status: "Registered",
+              source: String(f.get("evidence_reference")),
+              time: nowIST(),
+            });
+          item.investigation = {
+            ...initialInvestigation(item),
+            records: [],
+            audit: [
+              {
+                id: crypto.randomUUID(),
+                at: new Date().toISOString(),
+                actor: user ? "Signed-in operator" : "Training operator",
+                action: "Incident registered",
+                detail: item.source + " / " + item.title,
+                stage: flowSteps[mission][0],
+              },
+            ],
           };
           setError("");
           try {
@@ -1097,6 +998,84 @@ function Intake({ save, saving, user }: Workspace) {
               </label>
             </>
           )}
+          {(mission === "fraud"
+            ? [
+                {
+                  name: "payment_handle",
+                  label: "Beneficiary UPI / payment handle",
+                },
+                {
+                  name: "beneficiary_account",
+                  label: "Beneficiary account reference",
+                },
+                {
+                  name: "transaction_time",
+                  label: "Transaction date and time",
+                },
+              ]
+            : mission === "safety"
+              ? [
+                  {
+                    name: "profile_urls",
+                    label: "Reported profile URLs / identifiers",
+                  },
+                  {
+                    name: "threat_window",
+                    label: "Threat period and immediate risk",
+                  },
+                  { name: "safe_contact", label: "Safe contact preference" },
+                ]
+              : mission === "content"
+                ? [
+                    {
+                      name: "content_url",
+                      label: "Original content URL / archive reference",
+                    },
+                    {
+                      name: "original_upload",
+                      label: "Earliest upload date / source",
+                    },
+                    { name: "language", label: "Language / media type" },
+                  ]
+                : [
+                    {
+                      name: "last_contact",
+                      label: "Last contact / immediate-time reference",
+                    },
+                    {
+                      name: "landmark",
+                      label: "Last-known landmark / location source",
+                    },
+                    {
+                      name: "safe_contact",
+                      label: "Contact reference / reporter relationship",
+                    },
+                  ]
+          ).map((field) => (
+            <label key={field.name}>
+              {field.label}
+              <input name={field.name} required maxLength={400} />
+            </label>
+          ))}
+          <label>
+            Evidence description
+            <input name="evidence_name" required maxLength={200} />
+          </label>
+          <label>
+            Evidence source / request reference
+            <input name="evidence_reference" required maxLength={200} />
+          </label>
+          <label>
+            Evidence type
+            <select name="evidence_type">
+              <option>Source record</option>
+              <option>Transaction receipt</option>
+              <option>Message archive</option>
+              <option>Media transcript</option>
+              <option>Location note</option>
+              <option>Institution response</option>
+            </select>
+          </label>
           <label className="span-two">
             Reported context
             <textarea
@@ -1132,167 +1111,13 @@ function Intake({ save, saving, user }: Workspace) {
     </>
   );
 }
-function Fusion() {
-  const [selected, setSelected] = useState("Financial records");
-  const [ingestion, setIngestion] = useState("Direct data ingestion");
-  const sources = [
-    "Government databases",
-    "Telecom",
-    "RTO data",
-    "Citizen records",
-    "Financial records",
-    "Other source records",
-    "Internal systems",
-    "Open sources",
-  ];
+function Fusion(props: Workspace) {
   return (
-    <>
-      <div className="page-intro">
-        <div>
-          <span className="eyebrow">US4C / DATA FUSION</span>
-          <h1>Data Fusion</h1>
-          <p>
-            A shared intelligence layer connects functional units to operational
-            decisions.
-          </p>
-        </div>
-        <Tag>Integration blueprint</Tag>
-      </div>
-      <div className="fusion-layout">
-        <Panel title="Source systems" eyebrow="01 / INGEST">
-          <div className="source-list">
-            {sources.map((s, i) => (
-              <button
-                key={s}
-                className={selected === s ? "selected" : ""}
-                onClick={() => setSelected(s)}
-              >
-                <Database size={17} />
-                <span>{s}</span>
-                <small>0{i + 1}</small>
-              </button>
-            ))}
-          </div>
-        </Panel>
-        <Panel title="Fusion & analysis" eyebrow="02 / UNDERSTAND">
-          <div className="fusion-core">
-            <Layers3 size={44} />
-            <h3>Unified intelligence layer</h3>
-            <p>Structured · Semi-structured · Unstructured</p>
-          </div>
-          <div className="analysis-grid">
-            {[
-              "Text & NLP",
-              "Multimedia review",
-              "Search & linkage",
-              "Risk indicators",
-              "GIS intelligence",
-              "Predictive hypotheses",
-            ].map((s) => (
-              <div key={s}>
-                <MessageSquare size={16} />
-                {s}
-              </div>
-            ))}
-          </div>
-          <div className="notice">
-            <ShieldCheck size={18} />
-            Every conclusion retains its source, confidence and human review
-            status.
-          </div>
-        </Panel>
-        <Panel title="Operational intelligence" eyebrow="03 / ACT">
-          <div className="source-list">
-            {[
-              "Entity search",
-              "Reviewed alerts",
-              "Case intelligence",
-              "Coordination records",
-              "Outcome reporting",
-            ].map((s) => (
-              <div className="output-row" key={s}>
-                <Check size={16} />
-                {s}
-              </div>
-            ))}
-          </div>
-          <div className="slm-block">
-            <MessageSquare size={24} />
-            <h3>SLM / AI assistant layer</h3>
-            <p>
-              Summarise, explain and draft. Operators verify and approve
-              actions.
-            </p>
-          </div>
-        </Panel>
-      </div>
-      <Panel
-        title="Ingestion & normalization"
-        eyebrow="RETAINED DATA FUSION STEPS"
-      >
-        <div className="ingestion-methods">
-          {[
-            "Direct data ingestion",
-            "Web crawling",
-            "Ad hoc request portal / web services",
-            "One-time import + incremental updates",
-            "Hardcopy scanning / OCR / translation / archiving",
-          ].map((method, i) => (
-            <button
-              className={ingestion === method ? "selected" : ""}
-              key={method}
-              onClick={() => setIngestion(method)}
-            >
-              <span className="mono">0{i + 1}</span>
-              {method}
-              <ArrowRight size={14} />
-            </button>
-          ))}
-        </div>
-        <div className="ingestion-formats">
-          {[
-            "Text / email / voice",
-            "Forms / XML / messages",
-            "Photos / video / maps",
-            "Identifiers / structured records",
-          ].map((format) => (
-            <span className="tag" key={format}>
-              {format}
-            </span>
-          ))}
-        </div>
-        <p className="body-copy">
-          {ingestion} includes source validation, record normalization, entity
-          resolution, analytics and operator review.
-        </p>
-      </Panel>
-      <Panel title={selected} eyebrow="SELECTED SOURCE">
-        <p className="body-copy">
-          This source is part of the integration blueprint. No external{" "}
-          {selected.toLowerCase()} feed is connected. Current operational
-          persistence uses Supabase; government, bank and telecom connections
-          require authorised connectors and source agreements.
-        </p>
-        <div className="source-meta">
-          <div>
-            <span>INGESTION</span>
-            <strong>
-              {selected === "Open sources"
-                ? "URL / archived content"
-                : "Direct API / reviewed import"}
-            </strong>
-          </div>
-          <div>
-            <span>REVIEW</span>
-            <strong>Provenance + confidence</strong>
-          </div>
-          <div>
-            <span>STATUS</span>
-            <strong>Connector not configured</strong>
-          </div>
-        </div>
-      </Panel>
-    </>
+    <Suspense
+      fallback={<div className="ops-empty">Loading source intake…</div>}
+    >
+      <IntelligenceIntake {...props} />
+    </Suspense>
   );
 }
 function Units({ cases }: Workspace) {
@@ -1359,7 +1184,7 @@ function Units({ cases }: Workspace) {
           <p>
             Command review
             <br />
-            Data fusion
+            Sources & data intake
             <br />
             Inter-agency coordination
           </p>
@@ -1398,111 +1223,12 @@ function Units({ cases }: Workspace) {
   );
 }
 function Reports({ cases }: Workspace) {
-  const [exported, setExported] = useState(false);
   return (
-    <>
-      <div className="page-intro">
-        <div>
-          <span className="eyebrow">OUTCOMES & ACCOUNTABILITY</span>
-          <h1>Operational Reports</h1>
-          <p>Measure progress from the records in this workspace.</p>
-        </div>
-        <button
-          className="button"
-          onClick={() => {
-            const blob = new Blob([JSON.stringify(cases, null, 2)], {
-              type: "application/json",
-            });
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "us4c-workspace-report.json";
-            a.click();
-            URL.revokeObjectURL(a.href);
-            setExported(true);
-          }}
-        >
-          <Download size={16} />
-          {exported ? "Exported" : "Export report"}
-        </button>
-      </div>
-      <Panel title="Mission performance" eyebrow="RECORDED DATA">
-        <div className="report-table">
-          <table>
-            <thead>
-              <tr>
-                <th>Mission</th>
-                <th>Cases</th>
-                <th>Critical active</th>
-                <th>Resolved</th>
-                <th>Completed actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {missions.map((m) => {
-                const list = cases.filter((c) => c.mission === m.id);
-                return (
-                  <tr key={m.id}>
-                    <td>{m.title}</td>
-                    <td>{list.length}</td>
-                    <td>
-                      {
-                        list.filter(
-                          (c) => c.priority === "Critical" && c.stage < 5,
-                        ).length
-                      }
-                    </td>
-                    <td>{list.filter((c) => c.stage === 5).length}</td>
-                    <td>
-                      {
-                        list
-                          .flatMap((c) => c.actions)
-                          .filter((a) => a.status === "Completed").length
-                      }
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Panel>
-      <div className="overview-grid">
-        <Panel title="Financial response" eyebrow="RECORDED ACKNOWLEDGEMENTS">
-          <div className="report-money">
-            <span>Reported amount</span>
-            <strong>{money(cases.reduce((s, c) => s + c.amount, 0))}</strong>
-            <span>Frozen amount</span>
-            <strong className="cyan">
-              {money(cases.reduce((s, c) => s + c.frozen, 0))}
-            </strong>
-          </div>
-        </Panel>
-        <Panel title="Outcome register" eyebrow="FOLLOW-UP & HANDOVER">
-          {cases.filter((c) => c.stage === 5).length ? (
-            cases
-              .filter((c) => c.stage === 5)
-              .map((c) => (
-                <NavLink className="case-row" to={`/case/${c.id}`} key={c.id}>
-                  <div>
-                    <h3>{c.title}</h3>
-                    <p>{c.outcome}</p>
-                  </div>
-                  <ArrowRight size={16} />
-                </NavLink>
-              ))
-          ) : (
-            <div className="empty">
-              <ShieldCheck />
-              <h3>No resolved cases yet</h3>
-              <p>
-                Resolved cases appear here with their recorded outcome and
-                follow-up.
-              </p>
-            </div>
-          )}
-        </Panel>
-      </div>
-    </>
+    <Suspense
+      fallback={<div className="ops-empty">Loading operational reports…</div>}
+    >
+      <OperationsReports cases={cases} />
+    </Suspense>
   );
 }
 function NotFound() {
@@ -1517,173 +1243,6 @@ function NotFound() {
   );
 }
 
-function Chat({
-  close,
-  user,
-  cases,
-}: {
-  close: () => void;
-  user: User | null;
-  cases: Case[];
-}) {
-  const [messages, setMessages] = useState<
-    { role: "user" | "assistant"; content: string }[]
-  >([]);
-  const [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const ask = async (question: string) => {
-    if (!question.trim() || busy) return;
-    const next = [
-      ...messages,
-      { role: "user" as const, content: question.trim() },
-    ];
-    setMessages(next);
-    setInput("");
-    setBusy(true);
-    setError("");
-    try {
-      const endpoint = import.meta.env.VITE_CHATBOT_URL;
-      if (!endpoint)
-        throw new Error(
-          "The command assistant endpoint has not been configured.",
-        );
-      let token: string | undefined;
-      if (user && database) {
-        const { data } = await database.auth.getSession();
-        token = data.session?.access_token;
-      }
-      const response = await fetch(`${endpoint.replace(/\/$/, "")}/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          messages: next.slice(-10),
-          caseId: window.location.hash.startsWith("#/case/")
-            ? decodeURIComponent(window.location.hash.slice(7))
-            : undefined,
-        }),
-        signal: AbortSignal.timeout(35000),
-      });
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.error || "Assistant unavailable. Try again.");
-      setMessages([...next, { role: "assistant", content: result.reply }]);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <div className="chat-backdrop" onClick={close}>
-      <section
-        className="chat-drawer"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Command assistant"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="chat-header">
-          <div className="case-icon">
-            <MessageSquare size={24} />
-          </div>
-          <div>
-            <h2>Command assistant</h2>
-            <span>OPERATOR SUPPORT</span>
-          </div>
-          <button
-            className="icon-button"
-            aria-label="Close assistant"
-            onClick={close}
-          >
-            <X size={21} />
-          </button>
-        </div>
-        <div className="chat-body">
-          <div className="notice">
-            <ShieldCheck size={17} />
-            AI drafts require human review.{" "}
-            {user
-              ? "Uses only cases accessible to your account."
-              : "Public mode uses synthetic examples only."}
-          </div>
-          {!messages.length && (
-            <div className="chat-welcome">
-              <MessageSquare size={39} />
-              <h3>Command Assistant</h3>
-              <p>
-                Explore a mission, prepare a coordination draft or review what
-                to verify next.
-              </p>
-              {[
-                "Explain the financial fraud response workflow",
-                "What should I verify in a distress referral?",
-                "Draft an evidence-preservation checklist",
-              ].map((q) => (
-                <button key={q} onClick={() => void ask(q)}>
-                  {q}
-                  <ArrowUpRight size={15} />
-                </button>
-              ))}
-              <small>{cases.length} cases in current workspace</small>
-            </div>
-          )}
-          {messages.map((m, i) => (
-            <div key={i} className={`message ${m.role}`}>
-              <span>{m.role === "user" ? "YOU" : "COMMAND ASSISTANT"}</span>
-              <div className="markdown">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {m.content}
-                </ReactMarkdown>
-              </div>
-            </div>
-          ))}
-          {busy && (
-            <div className="chat-loading" role="status">
-              <Loader2 size={16} className="spin" />
-              Preparing a response…
-            </div>
-          )}
-          {error && (
-            <p className="error" role="alert">
-              {error}
-            </p>
-          )}
-        </div>
-        <form
-          className="chat-composer"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void ask(input);
-          }}
-        >
-          <textarea
-            aria-label="Message command assistant"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about a case or mission…"
-            maxLength={3000}
-            rows={2}
-          />
-          <button
-            className="button primary"
-            aria-label="Send message"
-            disabled={busy || !input.trim()}
-          >
-            <Send size={18} />
-          </button>
-          <small>
-            10 requests / minute per operator or public demo visitor · bounded
-            output
-          </small>
-        </form>
-      </section>
-    </div>
-  );
-}
 function Shell() {
   const [cases, setCases] = useState<Case[]>(loadDemo);
   const [user, setUser] = useState<User | null>(null);
@@ -1691,10 +1250,10 @@ function Shell() {
   const [loading, setLoading] = useState(false);
   const [chat, setChat] = useState(false);
   const [auth, setAuth] = useState(false);
+  const [launched, setLaunched] = useState(
+    () => sessionStorage.getItem("us4c-portal-open-v2") === "true",
+  );
   const [message, setMessage] = useState("");
-  const [authError, setAuthError] = useState("");
-  const [authBusy, setAuthBusy] = useState(false);
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   useEffect(() => {
     if (!database) return;
     let mounted = true;
@@ -1779,8 +1338,30 @@ function Shell() {
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
   }, []);
+  if (auth || (!launched && !user))
+    return (
+      <div className="cyber-app">
+        <Suspense
+          fallback={
+            <div className="ops-empty">Loading US4C access portal…</div>
+          }
+        >
+          <PortalGate
+            onEnter={() => {
+              sessionStorage.setItem("us4c-portal-open-v2", "true");
+              setLaunched(true);
+              setAuth(false);
+            }}
+            onCancel={launched ? () => setAuth(false) : undefined}
+          />
+        </Suspense>
+      </div>
+    );
   return (
     <div className="cyber-app">
+      <a className="skip-link" href="#main-content">
+        Skip to workspace
+      </a>
       <aside className="sidebar">
         <NavLink className="brand" to="/">
           <div className="brand-mark">
@@ -1814,7 +1395,7 @@ function Shell() {
           <div className="sidebar-caption">SHARED INTELLIGENCE</div>
           <NavLink to="/fusion">
             <Database size={18} />
-            Data fusion
+            Sources & data intake
           </NavLink>
           <NavLink to="/units">
             <Users size={18} />
@@ -1838,10 +1419,10 @@ function Shell() {
             <div className="avatar">{user ? "OP" : "DM"}</div>
             <div>
               <strong>
-                {user ? "Operator workspace" : "Demonstration workspace"}
+                {user ? "Operator workspace" : "Training workspace"}
               </strong>
               <span>
-                {user ? "Private database access" : "Synthetic example records"}
+                {user ? "Private database access" : "Operator exercise records"}
               </span>
             </div>
           </div>
@@ -1858,7 +1439,7 @@ function Shell() {
           <div className="topbar-right">
             <span className="system-status">
               <i className={`dot ${database ? "cyan-dot" : ""}`} />
-              {database ? "Database configured" : "Demo mode"}
+              {database ? "Database configured" : "Training mode"}
             </span>
             <button
               className="icon-button"
@@ -1873,7 +1454,11 @@ function Shell() {
             {user ? (
               <button
                 className="button compact"
-                onClick={() => void database?.auth.signOut()}
+                onClick={() => {
+                  sessionStorage.removeItem("us4c-portal-open-v2");
+                  setLaunched(false);
+                  void database?.auth.signOut();
+                }}
               >
                 <LogOut size={14} />
                 Sign out
@@ -1891,7 +1476,7 @@ function Shell() {
           <span>
             {user
               ? "Private operator workspace · database access restricted to your account"
-              : "Sample data workspace · synthetic demonstration records"}
+              : "Training workspace · fictional casework with masked identifiers"}
           </span>
           <span className="mono">
             {new Date().toLocaleDateString("en-IN", {
@@ -1903,7 +1488,7 @@ function Shell() {
             / IST
           </span>
         </div>
-        <main>
+        <main id="main-content">
           {message && (
             <div className="error" role="alert">
               {message}
@@ -1948,7 +1533,7 @@ function Shell() {
               <Route path="/mission/:id" element={<MissionPage {...props} />} />
               <Route path="/case/:id" element={<CasePage {...props} />} />
               <Route path="/intake" element={<Intake {...props} />} />
-              <Route path="/fusion" element={<Fusion />} />
+              <Route path="/fusion" element={<Fusion {...props} />} />
               <Route path="/units" element={<Units {...props} />} />
               <Route path="/reports" element={<Reports {...props} />} />
               <Route path="*" element={<NotFound />} />
@@ -1962,118 +1547,11 @@ function Shell() {
           </span>
         </footer>
       </div>
-      {chat && <Chat close={() => setChat(false)} user={user} cases={cases} />}{" "}
-      {auth && (
-        <div className="modal-backdrop" onClick={() => setAuth(false)}>
-          <section
-            className="auth-modal panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Operator authentication"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="icon-button modal-close"
-              aria-label="Close sign in"
-              onClick={() => setAuth(false)}
-            >
-              <X size={20} />
-            </button>
-            <ShieldCheck size={31} className="cyan" />
-            <span className="eyebrow">PRIVATE OPERATOR WORKSPACE</span>
-            <h2>
-              {mode === "signin"
-                ? "Operator sign in"
-                : "Create operator account"}
-            </h2>
-            <p>
-              Authenticated cases are stored privately in Supabase. Public
-              demonstration records stay separate.
-            </p>
-            {!database ? (
-              <p className="error">
-                Supabase connection has not been configured.
-              </p>
-            ) : (
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setAuthBusy(true);
-                  setAuthError("");
-                  const f = new FormData(e.currentTarget);
-                  try {
-                    const credentials = {
-                      email: String(f.get("email")),
-                      password: String(f.get("password")),
-                    };
-                    const { data, error } =
-                      mode === "signin"
-                        ? await database.auth.signInWithPassword(credentials)
-                        : await database.auth.signUp(credentials);
-                    if (error) throw error;
-                    if (data.session) setAuth(false);
-                    else
-                      setAuthError(
-                        "Check your email to confirm the account, then sign in.",
-                      );
-                  } catch (err) {
-                    setAuthError((err as Error).message);
-                  } finally {
-                    setAuthBusy(false);
-                  }
-                }}
-              >
-                <label>
-                  Email
-                  <input
-                    name="email"
-                    type="email"
-                    required
-                    autoComplete="email"
-                  />
-                </label>
-                <label>
-                  Password
-                  <input
-                    name="password"
-                    type="password"
-                    required
-                    minLength={8}
-                    autoComplete={
-                      mode === "signin" ? "current-password" : "new-password"
-                    }
-                  />
-                </label>
-                <button className="button primary full" disabled={authBusy}>
-                  {authBusy ? (
-                    <Loader2 size={16} className="spin" />
-                  ) : (
-                    <ShieldCheck size={16} />
-                  )}{" "}
-                  {mode === "signin" ? "Sign in" : "Create account"}
-                </button>
-              </form>
-            )}
-            {authError && (
-              <p role="status" className="notice">
-                {authError}
-              </p>
-            )}
-            <button
-              className="text-link"
-              onClick={() => {
-                setMode(mode === "signin" ? "signup" : "signin");
-                setAuthError("");
-              }}
-            >
-              {mode === "signin"
-                ? "Create an operator account"
-                : "Already have an account? Sign in"}
-              <ArrowRight size={14} />
-            </button>
-          </section>
-        </div>
-      )}
+      {chat && (
+        <Suspense fallback={null}>
+          <Chat close={() => setChat(false)} user={user} cases={cases} />
+        </Suspense>
+      )}{" "}
     </div>
   );
 }
@@ -2086,4 +1564,3 @@ export default function CyberApp() {
     </HashRouter>
   );
 }
-

@@ -4,7 +4,7 @@ import { seedCases } from "./data";
 const url = import.meta.env.VITE_US4C_SUPABASE_URL;
 const key = import.meta.env.VITE_US4C_SUPABASE_KEY;
 export const database = url && key ? createClient(url, key) : null;
-const storageKey = "us4c-demonstration-v1";
+const storageKey = "us4c-training-v2";
 export function loadDemo(): Case[] {
   try {
     const cached = JSON.parse(localStorage.getItem(storageKey) || "null");
@@ -33,7 +33,7 @@ export async function loadPublic() {
     .order("id", { ascending: false });
   if (error)
     throw new Error(
-      "Supabase is unavailable. Showing cached synthetic examples.",
+      "Supabase is unavailable. Showing cached training records.",
     );
   return data.map(fromRow);
 }
@@ -63,7 +63,24 @@ export async function loadRemote(owner: string) {
   return data.map(fromRow);
 }
 export async function saveRemote(item: Case, owner: string) {
-  const copy = { ...item, owner, isDemo: false };
+  const copy = {
+    ...item,
+    owner,
+    isDemo: false,
+    timeline: [...item.timeline],
+    investigation: item.investigation
+      ? { ...item.investigation, audit: [...item.investigation.audit] }
+      : undefined,
+  };
+  const size = () => new TextEncoder().encode(JSON.stringify(copy)).byteLength;
+  // Keep the newest event in the case snapshot. The server audit retains the history independently.
+  while (size() > 50000 && (copy.investigation?.audit.length || 0) > 1)
+    copy.investigation!.audit.shift();
+  while (size() > 50000 && copy.timeline.length > 1) copy.timeline.shift();
+  if (size() > 50000)
+    throw new Error(
+      "The case has reached its record capacity. Import fewer source records or shorten the source extracts before saving.",
+    );
   const { data, error } = await database!
     .from("us4c_cases")
     .upsert({ id: copy.id, owner_id: owner, is_demo: false, payload: copy })
