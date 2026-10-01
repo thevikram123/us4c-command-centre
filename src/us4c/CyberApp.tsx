@@ -283,7 +283,7 @@ function Dashboard({ cases, openChat }: Workspace) {
         </Panel>
         <Panel title="Command brief" eyebrow="HUMAN + MACHINE">
           <div className="brief-symbol">
-            <Sparkles size={31} />
+            <MessageSquare size={31} />
             <div className="orbit-ring" />
           </div>
           <h3 className="brief-title">Operator review</h3>
@@ -296,7 +296,7 @@ function Dashboard({ cases, openChat }: Workspace) {
             <span>AI insights stay separate from verified findings.</span>
           </div>
           <button className="button full" onClick={openChat}>
-            <Sparkles size={16} /> Open command assistant{" "}
+            <MessageSquare size={16} /> Open command assistant{" "}
             <ArrowRight size={15} />
           </button>
         </Panel>
@@ -560,14 +560,14 @@ function CasePage({ cases, save, saving, openChat }: Workspace) {
                 className="ai-panel"
               >
                 <div className="notice">
-                  <Sparkles size={18} />
+                  <MessageSquare size={18} />
                   These are sample insights or recorded analyst notes. Live
                   assistant output requires independent verification.
                 </div>
                 {item.insights.map((ins, i) => (
                   <div className="insight" key={i}>
                     <div>
-                      <Sparkles size={16} />
+                      <MessageSquare size={16} />
                       <p>{ins.text}</p>
                     </div>
                     <span>
@@ -1190,7 +1190,7 @@ function Fusion() {
               "Predictive hypotheses",
             ].map((s) => (
               <div key={s}>
-                <Sparkles size={16} />
+                <MessageSquare size={16} />
                 {s}
               </div>
             ))}
@@ -1217,7 +1217,7 @@ function Fusion() {
             ))}
           </div>
           <div className="slm-block">
-            <Sparkles size={24} />
+            <MessageSquare size={24} />
             <h3>SLM / AI assistant layer</h3>
             <p>
               Summarise, explain and draft. Operators verify and approve
@@ -1588,7 +1588,7 @@ function Chat({
       >
         <div className="chat-header">
           <div className="case-icon">
-            <Sparkles size={24} />
+            <MessageSquare size={24} />
           </div>
           <div>
             <h2>Command assistant</h2>
@@ -1612,7 +1612,7 @@ function Chat({
           </div>
           {!messages.length && (
             <div className="chat-welcome">
-              <Sparkles size={39} />
+              <MessageSquare size={39} />
               <h3>Command Assistant</h3>
               <p>
                 Explore a mission, prepare a coordination draft or review what
@@ -1827,7 +1827,7 @@ function Shell() {
         </nav>
         <div className="sidebar-bottom">
           <button onClick={() => setChat(true)} className="assistant-trigger">
-            <Sparkles size={19} />
+            <MessageSquare size={19} />
             <div>
               <strong>Command assistant</strong>
               <span>Case and workflow assistance</span>
@@ -2086,3 +2086,4 @@ export default function CyberApp() {
     </HashRouter>
   );
 }
+

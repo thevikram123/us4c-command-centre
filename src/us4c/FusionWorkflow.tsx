@@ -257,7 +257,7 @@ export default function FusionWorkflow({
         {current === 4 && (
           <>
             <div className="workflow-icon">
-              <Sparkles size={30} />
+              <FileText size={30} />
             </div>
             <h3>AI-assisted case summarisation</h3>
             <p>
@@ -274,7 +274,7 @@ export default function FusionWorkflow({
               </div>
             ))}
             <button className="button" onClick={openChat}>
-              <Sparkles size={16} />
+              <FileText size={16} />
               Prepare an AI brief
             </button>
           </>
@@ -418,3 +418,4 @@ export default function FusionWorkflow({
 function TagLine() {
   return <span className="tag">Workspace evidence match</span>;
 }
+
